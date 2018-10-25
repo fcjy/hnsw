@@ -7,7 +7,7 @@
 
 #endif
 
-
+#include <fstream>
 #include <queue>
 
 #include <string.h>
@@ -38,23 +38,19 @@ namespace hnswlib {
     template<typename MTYPE>
     class SpaceInterface {
     public:
-        //virtual void search(void *);
+        virtual ~SpaceInterface() {};
         virtual size_t get_data_size() = 0;
-
         virtual DISTFUNC<MTYPE> get_dist_func() = 0;
-
         virtual void *get_dist_func_param() = 0;
-
     };
 
     template<typename dist_t>
     class AlgorithmInterface {
     public:
-        virtual void addPoint(void *datapoint, labeltype label)=0;
+        virtual ~AlgorithmInterface() {};
+        virtual void addPoint(void *datapoint, labeltype label) = 0;
         virtual std::priority_queue<std::pair<dist_t, labeltype >> searchKnn(const void *, size_t) const = 0;
-        virtual void saveIndex(const std::string &location)=0;
-        virtual ~AlgorithmInterface(){
-        }
+        virtual void saveIndex(const std::string &location) = 0;
     };
 
 
