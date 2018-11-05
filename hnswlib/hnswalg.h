@@ -791,9 +791,8 @@ namespace hnswlib {
                 top_candidates.pop();
             }
             std::vector<std::pair<dist_t, tableint>> results(top_candidates.size());
-            int idx = 0;
-            while (top_candidates.size() > 0) {
-                results[idx++] = top_candidates.top();
+            for (size_t i = 0; i < results.size(); ++i) {
+                results[results.size() - i - 1] = top_candidates.top();
                 top_candidates.pop();
             }
             return results;
