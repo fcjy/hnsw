@@ -758,6 +758,46 @@ namespace hnswlib {
         };
 
 
+        std::vector<std::pair<dist_t, tableint>> MMSimSearch(const void *query_data, size_t k, size_t ef) const {
+            tableint currObj = enterpoint_node_;
+            dist_t curdist = fstdistfunc_(query_data, getDataByInternalId(enterpoint_node_), dist_func_param_);
+
+            for (int level = maxlevel_; level > 0; level--) {
+                bool changed = true;
+                while (changed) {
+                    changed = false;
+                    int *data;
+                    data = (int *) (linkLists_[currObj] + (level - 1) * size_links_per_element_);
+                    int size = *data;
+                    tableint *datal = (tableint *) (data + 1);
+                    for (int i = 0; i < size; i++) {
+                        tableint cand = datal[i];
+                        if (cand < 0 || cand > max_elements_)
+                            throw std::runtime_error("cand error");
+                        dist_t d = fstdistfunc_(query_data, getDataByInternalId(cand), dist_func_param_);
+
+                        if (d < curdist) {
+                            curdist = d;
+                            currObj = cand;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+
+            std::priority_queue<std::pair<dist_t, tableint>, std::vector<std::pair<dist_t, tableint>>, CompareByFirst> top_candidates = searchBaseLayerST(
+                    currObj, query_data, std::max(ef,k));
+            while (top_candidates.size() > k) {
+                top_candidates.pop();
+            }
+            std::vector<std::pair<dist_t, tableint>> results(top_candidates.size());
+            int idx = 0;
+            while (top_candidates.size() > 0) {
+                results[idx++] = top_candidates.top();
+                top_candidates.pop();
+            }
+            return results;
+        };
     };
 
 }
