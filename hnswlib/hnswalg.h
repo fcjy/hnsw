@@ -5,6 +5,7 @@
 #include <random>
 #include <iostream>
 #include <fstream>
+#include <functional>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +15,8 @@
 #include <unordered_map>
 
 
-
+using WriteFunc = std::function<void(const char*, size_t)>;
+#define WritePOD(pfn, val) (pfn((const char*)(&(val)), sizeof(val)))
 
 namespace hnswlib {
     typedef unsigned int tableint;
@@ -511,6 +513,31 @@ namespace hnswlib {
             output.close();
         }
 
+        void saveIndex(WriteFunc output) {
+            WritePOD(output, offsetLevel0_);
+            WritePOD(output, max_elements_);
+            WritePOD(output, cur_element_count);
+            WritePOD(output, size_data_per_element_);
+            WritePOD(output, label_offset_);
+            WritePOD(output, offsetData_);
+            WritePOD(output, maxlevel_);
+            WritePOD(output, enterpoint_node_);
+            WritePOD(output, maxM_);
+            WritePOD(output, maxM0_);
+            WritePOD(output, M_);
+            WritePOD(output, mult_);
+            WritePOD(output, ef_construction_);
+
+            output(data_level0_memory_, cur_element_count * size_data_per_element_);
+
+            for (size_t i = 0; i < cur_element_count; i++) {
+                unsigned int linkListSize = element_levels_[i] > 0 ? size_links_per_element_ * element_levels_[i] : 0;
+                WritePOD(output, linkListSize);
+                if (linkListSize)
+                    output(linkLists_[i], linkListSize);
+            }
+        }
+
         void loadIndex(const std::string &location, SpaceInterface<dist_t> *s, size_t max_elements_i=0) {
 
 
@@ -758,7 +785,8 @@ namespace hnswlib {
         };
 
 
-        std::vector<std::pair<dist_t, tableint>> MMSimSearch(const void *query_data, size_t k, size_t ef) const {
+        void MMSimSearch(const void *query_data, size_t k, size_t ef, 
+                std::vector<std::pair<dist_t, tableint>>& results) const {
             tableint currObj = enterpoint_node_;
             dist_t curdist = fstdistfunc_(query_data, getDataByInternalId(enterpoint_node_), dist_func_param_);
 
@@ -790,12 +818,12 @@ namespace hnswlib {
             while (top_candidates.size() > k) {
                 top_candidates.pop();
             }
-            std::vector<std::pair<dist_t, tableint>> results(top_candidates.size());
+
+            results.resize(top_candidates.size());
             for (size_t i = 0; i < results.size(); ++i) {
                 results[results.size() - i - 1] = top_candidates.top();
                 top_candidates.pop();
             }
-            return results;
         };
     };
 
