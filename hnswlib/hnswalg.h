@@ -483,6 +483,33 @@ namespace hnswlib {
             return top_candidates;
         };
 
+        void DropLastDimension() {
+            assert(data_size_ > 1);
+
+            size_t new_data_size_ = data_size_ - sizeof(dist_t);
+            size_t new_size_data_per_element_ = 
+                size_links_level0_ + new_data_size_ + sizeof(labeltype);
+            size_t new_label_offset_ = size_links_level0_ + new_data_size_;
+
+            char* buf = (char*)malloc(
+                    cur_element_count * new_size_data_per_element_);
+            char* pos = buf;
+            assert(buf != nullptr);
+            for (size_t i = 0; i < cur_element_count; ++i) {
+                memcpy(pos, data_level0_memory_ + i * size_data_per_element_, new_label_offset_);
+                pos += new_label_offset_;
+                memcpy(pos, data_level0_memory_ + i * size_data_per_element_ + label_offset_, sizeof(labeltype));
+                pos += sizeof(labeltype);
+                assert(pos <= buf + cur_element_count * new_size_data_per_element_);
+            }
+
+            data_size_ = new_data_size_;
+            size_data_per_element_ = new_size_data_per_element_;
+            label_offset_ = new_label_offset_;
+            free(data_level0_memory_);
+            data_level0_memory_ = buf;
+        }
+
         void saveIndex(const std::string &location) {
             std::ofstream output(location, std::ios::binary);
             std::streampos position;
